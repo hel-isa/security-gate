@@ -19,24 +19,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.7'
+
       - name: Install OSV-Scanner
         run: |
           set -euo pipefail
-      
-          OSV_VERSION="2.0.2"
-          URL="https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_${OSV_VERSION}_linux_amd64"
-      
-          curl -fL "$URL" -o osv-scanner
-          file osv-scanner
-          chmod +x osv-scanner
-          sudo mv osv-scanner /usr/local/bin/osv-scanner
-          /usr/local/bin/osv-scanner --version
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.0.2
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Check OSV-Scanner
+        run: osv-scanner --version
 
       - name: Run OSV-Scanner
         run: |
+          set -euo pipefail
           mkdir -p reports
-          osv-scanner scan source . --format json --output reports/osv-report.json || true
-
+          osv-scanner scan source --recursive ./ --format json --output-file reports/osv-report.json || true
+          
       - name: Evaluate OSV findings
         run: |
           if [ ! -f reports/osv-report.json ]; then
