@@ -19,43 +19,50 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.7'
+
       - name: Install OSV-Scanner
         run: |
-          OSV_VERSION="2.0.2"
-          curl -sSL "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_${OSV_VERSION}_linux_amd64" -o osv-scanner
-          chmod +x osv-scanner
-          sudo mv osv-scanner /usr/local/bin/osv-scanner
-          osv-scanner --version
+          set -euo pipefail
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.0.2
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Check OSV-Scanner
+        run: osv-scanner --version
 
       - name: Run OSV-Scanner
         run: |
+          set -euo pipefail
           mkdir -p reports
-          osv-scanner scan source . --format json --output reports/osv-report.json || true
-
+          osv-scanner scan source --recursive ./ --format json --output-file reports/osv-report.json || true
+          
       - name: Evaluate OSV findings
         run: |
           if [ ! -f reports/osv-report.json ]; then
             echo '{"results": []}' > reports/osv-report.json
           fi
           FINDINGS_COUNT=$(python - <<'PY'
-import json
-from pathlib import Path
-path = Path('reports/osv-report.json')
-try:
-    data = json.loads(path.read_text())
-    count = 0
-    for result in data.get('results', []):
-        count += len(result.get('packages', []) or [])
-        count += len(result.get('vulnerabilities', []) or [])
-    print(count)
-except Exception:
-    print(0)
-PY
-)
-          echo "OSV findings: ${FINDINGS_COUNT}"
-          if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
-            exit 1
-          fi
+          import json
+          from pathlib import Path
+          path = Path('reports/osv-report.json')
+          try:
+              data = json.loads(path.read_text())
+              count = 0
+              for result in data.get('results', []):
+                  count += len(result.get('packages', []) or [])
+                  count += len(result.get('vulnerabilities', []) or [])
+              print(count)
+          except Exception:
+              print(0)
+          PY
+          )
+                    echo "OSV findings: ${FINDINGS_COUNT}"
+                    if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+                      exit 1
+                    fi
 
       - name: Upload OSV report
         if: always()
