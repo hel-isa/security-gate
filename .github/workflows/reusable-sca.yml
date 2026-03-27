@@ -38,24 +38,24 @@ jobs:
             echo '{"results": []}' > reports/osv-report.json
           fi
           FINDINGS_COUNT=$(python - <<'PY'
-import json
-from pathlib import Path
-path = Path('reports/osv-report.json')
-try:
-    data = json.loads(path.read_text())
-    count = 0
-    for result in data.get('results', []):
-        count += len(result.get('packages', []) or [])
-        count += len(result.get('vulnerabilities', []) or [])
-    print(count)
-except Exception:
-    print(0)
-PY
-)
-          echo "OSV findings: ${FINDINGS_COUNT}"
-          if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
-            exit 1
-          fi
+          import json
+          from pathlib import Path
+          path = Path('reports/osv-report.json')
+          try:
+              data = json.loads(path.read_text())
+              count = 0
+              for result in data.get('results', []):
+                  count += len(result.get('packages', []) or [])
+                  count += len(result.get('vulnerabilities', []) or [])
+              print(count)
+          except Exception:
+              print(0)
+          PY
+          )
+                    echo "OSV findings: ${FINDINGS_COUNT}"
+                    if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+                      exit 1
+                    fi
 
       - name: Upload OSV report
         if: always()
