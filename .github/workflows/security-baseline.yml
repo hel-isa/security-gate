@@ -12,35 +12,6 @@ permissions:
 jobs:
   secrets:
     name: Secrets Detection
-    uses: ./.github/workflows/reusable-secrets.yml
+    uses: hel-isa/security-gate/.github/workflows/reusable-secrets.yml@86e8ec53a459cf019013bb2297597cca575eae67
     with:
       fail_on_findings: true
-
-  sast:
-    name: SAST Scan
-    uses: ./.github/workflows/reusable-sast.yml
-    with:
-      fail_on_findings: true
-      config: auto
-
-  sca:
-    name: SCA Scan
-    uses: ./.github/workflows/reusable-sca.yml
-    with:
-      fail_on_findings: true
-
-  sbom:
-    name: SBOM Generation
-    uses: ./.github/workflows/reusable-sbom.yml
-
-  dashboard:
-    name: Security Dashboard
-    needs:
-      - secrets
-      - sast
-      - sca
-      - sbom
-    if: always()
-    uses: ./.github/workflows/reusable-dashboard.yml
-    with:
-      repo_name: ${{ github.repository }}
