@@ -12,6 +12,6 @@ permissions:
 jobs:
   secrets:
     name: Secrets Detection
-    uses: hel-isa/security-gate/.github/workflows/reusable-secrets.yml@86e8ec53a459cf019013bb2297597cca575eae67
+    uses: hel-isa/security-gate/.github/workflows/reusable-secrets.yml@main
     with:
       fail_on_findings: true
