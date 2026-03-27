@@ -1,0 +1,67 @@
+name: Reusable - SAST (Semgrep)
+
+on:
+  workflow_call:
+    inputs:
+      fail_on_findings:
+        description: Fail the job when findings are detected
+        required: false
+        default: true
+        type: boolean
+      config:
+        description: Semgrep config or ruleset
+        required: false
+        default: auto
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: pip install --disable-pip-version-check semgrep
+
+      - name: Run Semgrep
+        run: |
+          mkdir -p reports
+          semgrep scan --config "${{ inputs.config }}" --json --output reports/semgrep-report.json . || true
+
+      - name: Evaluate Semgrep findings
+        run: |
+          if [ ! -f reports/semgrep-report.json ]; then
+            echo '{"results": []}' > reports/semgrep-report.json
+          fi
+          FINDINGS_COUNT=$(python - <<'PY'
+import json
+from pathlib import Path
+path = Path('reports/semgrep-report.json')
+try:
+    data = json.loads(path.read_text())
+    print(len(data.get('results', [])) if isinstance(data, dict) else 0)
+except Exception:
+    print(0)
+PY
+)
+          echo "Semgrep findings: ${FINDINGS_COUNT}"
+          if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/semgrep-report.json
+          if-no-files-found: error

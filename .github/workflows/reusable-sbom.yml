@@ -1,0 +1,37 @@
+name: Reusable - SBOM (Syft)
+
+on:
+  workflow_call:
+    inputs:
+      scan_path:
+        description: Path to scan
+        required: false
+        default: .
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          mkdir -p reports
+          syft "${{ inputs.scan_path }}" -o cyclonedx-json=reports/sbom-cyclonedx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-report
+          path: reports/sbom-cyclonedx.json
+          if-no-files-found: error

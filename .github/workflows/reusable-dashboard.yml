@@ -1,0 +1,49 @@
+name: Reusable - Dashboard Aggregation
+
+on:
+  workflow_call:
+    inputs:
+      repo_name:
+        description: Repository name override
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/raw
+          pattern: '*-report'
+          merge-multiple: true
+
+      - name: Aggregate findings
+        run: |
+          mkdir -p reports/normalized
+          python scripts/aggregate_results.py \
+            --input-dir reports/raw \
+            --output-file reports/normalized/dashboard-data.json \
+            --repo-name "${{ inputs.repo_name || github.repository }}"
+
+      - name: Build static dashboard package
+        run: |
+          python scripts/generate_dashboard.py \
+            --data-file reports/normalized/dashboard-data.json \
+            --dashboard-dir dashboard \
+            --output-dir reports/dashboard
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-dashboard
+          path: reports/dashboard
+          if-no-files-found: error
