@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Security Guardrails Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Security Guardrails Dashboard</h1>
+      <p id="repo"></p>
+      <p id="scan-date"></p>
+
+      <section class="cards" id="summary-cards"></section>
+
+      <section>
+        <h2>Findings</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Category</th>
+              <th>Severity</th>
+              <th>Title</th>
+              <th>File</th>
+              <th>Line</th>
+              <th>Rule ID</th>
+            </tr>
+          </thead>
+          <tbody id="findings-body"></tbody>
+        </table>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

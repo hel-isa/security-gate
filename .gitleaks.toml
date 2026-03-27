@@ -1,0 +1,8 @@
+title = "Security Guardrails Gitleaks Config"
+
+[allowlist]
+description = "Allow common test and docs noise"
+paths = [
+  '''^docs/''',
+  '''^dashboard/'''
+]

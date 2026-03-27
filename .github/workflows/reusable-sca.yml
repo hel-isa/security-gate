@@ -1,0 +1,66 @@
+name: Reusable - SCA (OSV-Scanner)
+
+on:
+  workflow_call:
+    inputs:
+      fail_on_findings:
+        description: Fail the job when findings are detected
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  sca:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OSV-Scanner
+        run: |
+          OSV_VERSION="2.0.2"
+          curl -sSL "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_${OSV_VERSION}_linux_amd64" -o osv-scanner
+          chmod +x osv-scanner
+          sudo mv osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Run OSV-Scanner
+        run: |
+          mkdir -p reports
+          osv-scanner scan source . --format json --output reports/osv-report.json || true
+
+      - name: Evaluate OSV findings
+        run: |
+          if [ ! -f reports/osv-report.json ]; then
+            echo '{"results": []}' > reports/osv-report.json
+          fi
+          FINDINGS_COUNT=$(python - <<'PY'
+import json
+from pathlib import Path
+path = Path('reports/osv-report.json')
+try:
+    data = json.loads(path.read_text())
+    count = 0
+    for result in data.get('results', []):
+        count += len(result.get('packages', []) or [])
+        count += len(result.get('vulnerabilities', []) or [])
+    print(count)
+except Exception:
+    print(0)
+PY
+)
+          echo "OSV findings: ${FINDINGS_COUNT}"
+          if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload OSV report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osv-report
+          path: reports/osv-report.json
+          if-no-files-found: error
