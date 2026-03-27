@@ -18,7 +18,29 @@ jobs:
       
   sast:
     name: SAST Scan
-    uses: hel-isa/security-gate/.github/workflows/reusable-sast.yml@main
+    uses: hel-isa/security-gate/.github/workflows/reusable-sast.yml@hel-isa-add-sast
     with:
       fail_on_findings: true
       config: auto
+
+  sca:
+    name: SCA Scan
+    uses: hel-isa/security-gate/.github/workflows/reusable-sca.yml@hel-isa-add-sast
+    with:
+      fail_on_findings: true
+
+  sbom:
+    name: SBOM Generation
+    uses: hel-isa/security-gate/.github/workflows/reusable-sbom.yml@hel-isa-add-sast
+
+  dashboard:
+    name: Security Dashboard
+    needs:
+      - secrets
+      - sast
+      - sca
+      - sbom
+    if: always()
+    uses: hel-isa/security-gate/.github/workflows/reusable-dashboard.yml@hel-isa-add-sast
+    with:
+      repo_name: ${{ github.repository }}
