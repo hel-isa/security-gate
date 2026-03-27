@@ -43,16 +43,16 @@ jobs:
             echo '{"results": []}' > reports/semgrep-report.json
           fi
           FINDINGS_COUNT=$(python - <<'PY'
-import json
-from pathlib import Path
-path = Path('reports/semgrep-report.json')
-try:
-    data = json.loads(path.read_text())
-    print(len(data.get('results', [])) if isinstance(data, dict) else 0)
-except Exception:
-    print(0)
-PY
-)
+          import json
+          from pathlib import Path
+          path = Path('reports/semgrep-report.json')
+          try:
+              data = json.loads(path.read_text())
+              print(len(data.get('results', [])) if isinstance(data, dict) else 0)
+          except Exception:
+              print(0)
+          PY
+          )
           echo "Semgrep findings: ${FINDINGS_COUNT}"
           if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
             exit 1
