@@ -15,3 +15,10 @@ jobs:
     uses: hel-isa/security-gate/.github/workflows/reusable-secrets.yml@main
     with:
       fail_on_findings: true
+      
+  sast:
+    name: SAST Scan
+    uses: hel-isa/security-gate/.github/workflows/reusable-sast.yml@main
+    with:
+      fail_on_findings: true
+      config: auto
