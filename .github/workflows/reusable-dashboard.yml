@@ -8,6 +8,11 @@ on:
         required: false
         default: ''
         type: string
+      deploy_pages:
+        description: Deploy dashboard to GitHub Pages
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -34,27 +39,45 @@ jobs:
 
       - name: Aggregate findings
         run: |
+          set -euo pipefail
           mkdir -p reports/normalized
           python scripts/aggregate_results.py \
             --input-dir reports/raw \
             --output-file reports/normalized/dashboard-data.json \
-            --repo-name "${{ inputs.repo_name }}"
+            --repo-name "${{ inputs.repo_name || github.repository }}"
 
       - name: Build static dashboard package
         run: |
+          set -euo pipefail
           python scripts/generate_dashboard.py \
             --data-file reports/normalized/dashboard-data.json \
             --dashboard-dir dashboard \
             --output-dir reports/dashboard
 
+      - name: Verify dashboard output
+        run: |
+          set -euo pipefail
+          test -f reports/dashboard/index.html
+          ls -R reports/dashboard
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-dashboard
+          path: reports/dashboard
+          if-no-files-found: error
+
       - name: Configure Pages
+        if: inputs.deploy_pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: inputs.deploy_pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: reports/dashboard
 
       - name: Deploy to GitHub Pages
+        if: inputs.deploy_pages
         id: deployment
         uses: actions/deploy-pages@v4
