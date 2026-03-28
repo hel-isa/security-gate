@@ -41,6 +41,6 @@ jobs:
       - sca
       - sbom
     if: always()
-    uses: hel-isa/security-gate/.github/workflows/reusable-dashboard.yml@main
+    uses: hel-isa/security-gate/.github/workflows/reusable-dashboard.yml@hel-isa-patch-1
     with:
       repo_name: ${{ github.repository }}
