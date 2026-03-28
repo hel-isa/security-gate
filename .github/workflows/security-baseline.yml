@@ -36,13 +36,14 @@ jobs:
     uses: hel-isa/security-gate/.github/workflows/reusable-sbom.yml@main
 
   dashboard:
-    name: Security Dashboard
-    needs:
-      - secrets
-      - sast
-      - sca
-      - sbom
-    if: always()
-    uses: hel-isa/security-gate/.github/workflows/reusable-dashboard.yml@main
-    with:
-      repo_name: ${{ github.repository }}
+      name: Security Dashboard
+      needs:
+        - secrets
+        - sast
+        - sca
+        - sbom
+      if: always()
+      uses: hel-isa/security-gate/.github/workflows/reusable-dashboard.yml@hel-isa-add-sast
+      with:
+        repo_name: ${{ github.repository }}
+        deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
