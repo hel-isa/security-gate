@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Release Candidate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate version
+        id: version
+        run: |
+          set -euo pipefail
+
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must use MAJOR.MINOR.PATCH format. Found: $VERSION"
+            exit 1
+          fi
+
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate workflow YAML
+        run: |
+          set -euo pipefail
+          ruby -e 'require "yaml"; Dir[".github/workflows/*.yml", "examples/*.yml"].each { |f| YAML.load_file(f) }; puts "workflow yaml parse ok"'
+
+      - name: Validate Python scripts
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/aggregate_results.py scripts/generate_dashboard.py
+
+      - name: Validate release notes
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          grep -q "## ${TAG}" CHANGELOG.md
+
+      - name: Check release tag availability
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          git fetch --tags --force
+          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+            echo "Release tag ${TAG} already exists. Update VERSION before releasing again."
+            exit 1
+          fi
+
+  release:
+    name: Create Release Tag
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push tag
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.validate.outputs.tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"

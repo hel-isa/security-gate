@@ -35,19 +35,30 @@ Keep these aligned:
 - workflow reference: `@v2.0.1`
 - dashboard/script reference: `gate_ref: v2.0.1`
 
+<<<<<<< HEAD
 ## Latest Compatible Version
 
 Users who want automatic compatible updates can use the moving `v2` branch:
+=======
+## Latest Version
+
+Users who want the latest merged version can use `main`:
+>>>>>>> ba88ea2 (Add release workflow to automate version tagging and validation)
 
 ```yaml
 jobs:
   security-gate:
     name: Security Gate
+<<<<<<< HEAD
     uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2
+=======
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@main
+>>>>>>> ba88ea2 (Add release workflow to automate version tagging and validation)
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
+<<<<<<< HEAD
       gate_ref: v2
 ```
 
@@ -76,6 +87,45 @@ git push origin release/v2.0.1
 Then open a PR from `release/v2.0.1` into `v2`.
 
 ## Release Checklist
+=======
+      gate_ref: main
+```
+
+Use `main` only for training, demos, or repositories that accept receiving every merged change. Production and external-company repositories should use exact release tags.
+
+## Automated Release on Main
+
+Pushing to `main` runs `.github/workflows/release.yml`.
+
+The workflow validates:
+
+- `VERSION` uses `MAJOR.MINOR.PATCH`
+- workflow and example YAML can be parsed
+- Python helper scripts compile
+- `CHANGELOG.md` contains a section for the tag, for example `## v2.0.1`
+- the release tag does not already exist
+
+If every validation passes, the workflow creates and pushes an annotated tag named from `VERSION`, for example `v2.0.1`.
+
+The workflow never overwrites an existing tag. To publish another release, update `VERSION` and `CHANGELOG.md` first.
+
+## Pull Request Release Flow
+
+Use a pull request for every release candidate:
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b release/v2.0.1
+git add .
+git commit -m "Prepare v2.0.1 release"
+git push -u origin release/v2.0.1
+```
+
+Open a PR into `main`. When the PR is merged, the release workflow validates the merged commit and creates the tag.
+
+## Manual Release Checklist
+>>>>>>> ba88ea2 (Add release workflow to automate version tagging and validation)
 
 1. Update `VERSION`.
 2. Update `CHANGELOG.md`.
@@ -86,6 +136,7 @@ Then open a PR from `release/v2.0.1` into `v2`.
    PYTHONPYCACHEPREFIX=/private/tmp/security-gate-pycache python3 -m py_compile scripts/aggregate_results.py scripts/generate_dashboard.py
    ```
 
+<<<<<<< HEAD
 4. Open and merge the release PR into `v2`.
 5. Pull the merged `v2` branch:
 
@@ -109,6 +160,19 @@ Then open a PR from `release/v2.0.1` into `v2`.
 8. Ask one approved repository to run the audit template before announcing the release more broadly.
 
 If you do not want a moving latest branch, ask all consumers to use exact tags only.
+=======
+4. Merge the release PR into `main`.
+5. Let `.github/workflows/release.yml` create the tag automatically.
+
+Manual fallback:
+
+   ```bash
+   git tag -a v2.0.1 -m "Release v2.0.1"
+   git push origin v2.0.1
+   ```
+
+6. Ask one approved repository to run the audit template before announcing the release more broadly.
+>>>>>>> ba88ea2 (Add release workflow to automate version tagging and validation)
 
 ## Compatibility Promise
 
