@@ -44,12 +44,12 @@ permissions:
 jobs:
   security-gate:
     name: Security Gate
-    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
-      gate_ref: v2
+      gate_ref: v2.0.0
       deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 ```
 
@@ -64,7 +64,7 @@ jobs:
 | `repo_name` | caller repository | Repository name shown in dashboard data. |
 | `deploy_pages` | `false` | Publishes the dashboard to GitHub Pages when enabled. |
 | `gate_repository` | `hel-isa/security-gate` | Repository containing Security Gate scripts and dashboard assets. |
-| `gate_ref` | `v2` | Git ref used to load Security Gate scripts and dashboard assets. |
+| `gate_ref` | `v2` | Git ref used to load Security Gate scripts and dashboard assets. Approved consumers should set this to the same release tag as the workflow reference. |
 
 ## Approved Use Model
 

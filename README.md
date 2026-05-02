@@ -39,12 +39,12 @@ Start in audit mode:
 jobs:
   security-gate:
     name: Security Gate
-    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
-      gate_ref: v2
+      gate_ref: v2.0.0
 ```
 
 Switch to strict mode when the team is ready to block on findings:
@@ -55,7 +55,7 @@ with:
   semgrep_config: auto
 ```
 
-See `docs/onboarding.md` for the full copy-paste workflow and `docs/presets.md` for preset guidance.
+See `docs/onboarding.md` for the full copy-paste workflow, `docs/presets.md` for preset guidance, and `docs/release-management.md` for stable tag usage.
 
 ## Repository Layout
 - `.github/workflows/` - orchestrator and reusable workflow modules
@@ -95,6 +95,10 @@ Open `index.html` locally from the dashboard artifact folder to view the report.
 
 Advanced teams can call individual reusable workflows directly when they need custom composition. Most repositories should use `reusable-security-gate.yml`.
 
+## Stable Releases
+
+Approved consumers should pin to immutable release tags such as `v2.0.0`. Keep the workflow reference and `gate_ref` aligned so the reusable workflow and dashboard assets come from the same release.
+
 ## Local Usage (where applicable)
 - Aggregation script:
   ```bash
@@ -106,7 +110,6 @@ Advanced teams can call individual reusable workflows directly when they need cu
   ```
 
 ## Roadmap Ideas (v2+)
-- Stable release tags for approved consumers
 - Severity mapping improvements for OSV and custom policies
 - Trend history across runs
 - Multi-repo rollup dashboards

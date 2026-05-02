@@ -15,10 +15,10 @@ permissions:
 jobs:
   security-gate:
     name: Security Gate
-    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
-      gate_ref: v2
+      gate_ref: v2.0.0
       deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

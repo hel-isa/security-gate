@@ -38,7 +38,7 @@ This keeps the default path language-agnostic while preserving escape hatches fo
 ## Approved Repository Flow
 
 1. A repository owner copies an example workflow into `.github/workflows/security-gate.yml`.
-2. The workflow calls `hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2`.
+2. The workflow calls `hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0`.
 3. The first run should use audit mode to establish a baseline.
 4. The repository can switch to strict mode when findings are understood and enforcement is accepted.
 
