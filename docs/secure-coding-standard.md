@@ -1,4 +1,4 @@
-# Secure Coding Standard (ASVS-inspired, v1)
+# Secure Coding Standard (ASVS-inspired, v2)
 
 ## Purpose
 This baseline defines minimum secure coding expectations for pull requests and mainline merges.

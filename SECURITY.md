@@ -9,17 +9,19 @@ Include:
 - Potential impact
 - Suggested remediation (if known)
 
-## Supported Scope (v1)
-This repository provides CI guardrails for:
+## Supported Scope (v2)
+This repository provides a reusable CI security gate for approved repositories:
 - Secrets detection (Gitleaks)
 - SAST (Semgrep)
 - SCA (OSV-Scanner)
 - SBOM generation (Syft)
+- Static dashboard artifacts
 
 ## Out of Scope
 - Runtime protection
 - Cloud workload posture management
 - Proprietary GHAS-only features
+- Approval management for consuming repositories
 
 ## Disclosure Expectations
 - Do not publicly disclose vulnerabilities before triage.

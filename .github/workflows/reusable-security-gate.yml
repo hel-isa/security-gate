@@ -1,0 +1,119 @@
+name: Reusable - Security Gate
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Gate mode. Use audit for non-blocking scans or strict to fail on findings.
+        required: false
+        default: audit
+        type: string
+      semgrep_config:
+        description: Semgrep config or ruleset.
+        required: false
+        default: auto
+        type: string
+      gitleaks_config_path:
+        description: Path to a Gitleaks config file in the scanned repository.
+        required: false
+        default: .gitleaks.toml
+        type: string
+      sbom_scan_path:
+        description: Path to scan for SBOM generation.
+        required: false
+        default: .
+        type: string
+      repo_name:
+        description: Repository name override for dashboard output.
+        required: false
+        default: ''
+        type: string
+      deploy_pages:
+        description: Deploy the dashboard to GitHub Pages on eligible runs.
+        required: false
+        default: false
+        type: boolean
+      gate_repository:
+        description: Repository containing Security Gate scripts and dashboard assets.
+        required: false
+        default: hel-isa/security-gate
+        type: string
+      gate_ref:
+        description: Git ref for Security Gate scripts and dashboard assets.
+        required: false
+        default: v2
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate Gate Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      fail_on_findings: ${{ steps.mode.outputs.fail_on_findings }}
+    steps:
+      - name: Resolve mode
+        id: mode
+        run: |
+          set -euo pipefail
+          case "${{ inputs.mode }}" in
+            audit|non-strict)
+              echo "fail_on_findings=false" >> "$GITHUB_OUTPUT"
+              ;;
+            strict)
+              echo "fail_on_findings=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported security gate mode: ${{ inputs.mode }}"
+              echo "Use audit, non-strict, or strict."
+              exit 1
+              ;;
+          esac
+
+  secrets:
+    name: Secrets Detection
+    needs: validate
+    uses: ./.github/workflows/reusable-secrets.yml
+    with:
+      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
+      config_path: ${{ inputs.gitleaks_config_path }}
+
+  sast:
+    name: SAST Scan
+    needs: validate
+    uses: ./.github/workflows/reusable-sast.yml
+    with:
+      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
+      config: ${{ inputs.semgrep_config }}
+
+  sca:
+    name: SCA Scan
+    needs: validate
+    uses: ./.github/workflows/reusable-sca.yml
+    with:
+      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
+
+  sbom:
+    name: SBOM Generation
+    uses: ./.github/workflows/reusable-sbom.yml
+    with:
+      scan_path: ${{ inputs.sbom_scan_path }}
+
+  dashboard:
+    name: Security Dashboard
+    needs:
+      - secrets
+      - sast
+      - sca
+      - sbom
+    if: always()
+    uses: ./.github/workflows/reusable-dashboard.yml
+    with:
+      repo_name: ${{ inputs.repo_name }}
+      deploy_pages: ${{ inputs.deploy_pages }}
+      gate_repository: ${{ inputs.gate_repository }}
+      gate_ref: ${{ inputs.gate_ref }}

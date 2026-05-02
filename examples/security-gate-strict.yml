@@ -1,10 +1,11 @@
-name: Security Baseline
+name: Security Gate
 
 on:
   pull_request:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,9 +15,10 @@ permissions:
 jobs:
   security-gate:
     name: Security Gate
-    uses: ./.github/workflows/reusable-security-gate.yml
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
     with:
-      mode: audit
+      mode: strict
       semgrep_config: auto
       repo_name: ${{ github.repository }}
+      gate_ref: v2.0.0
       deploy_pages: false
