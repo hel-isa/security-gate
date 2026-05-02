@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.0.1 - Cross-Repository Reusable Workflow Fix
+
+Patch release for approved repositories that call Security Gate from another repository or organization.
+
+### Fixed
+
+- Made `.github/workflows/reusable-security-gate.yml` self-contained so external consumers do not need local copies of lower-level reusable workflows.
+- Prevented GitHub from resolving nested `./.github/workflows/reusable-*.yml` references against the caller repository.
+
+### Release Notes
+
+Approved consumers should pin both the reusable workflow reference and `gate_ref` to `v2.0.1`.
+
 ## v2.0.0 - Initial Product Release
 
 Stable release for approved repositories that need a reusable Security Gate workflow.
@@ -14,4 +27,4 @@ Stable release for approved repositories that need a reusable Security Gate work
 
 ### Release Notes
 
-Approved consumers should pin both the reusable workflow reference and `gate_ref` to `v2.0.0`.
+`v2.0.0` should be replaced with `v2.0.1` for external consumers because the product workflow in `v2.0.0` used nested relative reusable workflows.

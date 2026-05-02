@@ -77,31 +77,222 @@ jobs:
   secrets:
     name: Secrets Detection
     needs: validate
-    uses: ./.github/workflows/reusable-secrets.yml
-    with:
-      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
-      config_path: ${{ inputs.gitleaks_config_path }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Gitleaks
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION="8.24.2"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Ensure Gitleaks config exists
+        run: |
+          set -euo pipefail
+          CONFIG_PATH="${{ inputs.gitleaks_config_path }}"
+
+          if [ ! -f "$CONFIG_PATH" ]; then
+            echo "Config file not found at $CONFIG_PATH. Creating a default Gitleaks config."
+            mkdir -p "$(dirname "$CONFIG_PATH")"
+
+            printf "%s\n" \
+              "title = \"Default Gitleaks Config\"" \
+              "" \
+              "[extend]" \
+              "useDefault = true" \
+              "" \
+              "[allowlist]" \
+              "description = \"Global allowlist\"" \
+              "paths = [" \
+              "  '''(^|/)node_modules(/|$)'''," \
+              "  '''(^|/)dist(/|$)'''," \
+              "  '''(^|/)build(/|$)'''," \
+              "  '''(^|/)\\.git(/|$)'''," \
+              "  '''(^|/)reports(/|$)'''" \
+              "]" > "$CONFIG_PATH"
+          else
+            echo "Using existing Gitleaks config at $CONFIG_PATH"
+          fi
+
+      - name: Run Gitleaks
+        id: gitleaks
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+
+          set +e
+          gitleaks detect \
+            --source . \
+            --report-format json \
+            --report-path reports/gitleaks-report.json \
+            --config "${{ inputs.gitleaks_config_path }}"
+          EXIT_CODE=$?
+          set -e
+
+          if [ ! -f reports/gitleaks-report.json ]; then
+            echo '[]' > reports/gitleaks-report.json
+          fi
+
+          FINDINGS_COUNT=$(jq 'if type=="array" then length else 0 end' reports/gitleaks-report.json 2>/dev/null || echo 0)
+          echo "findings_count=${FINDINGS_COUNT}" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ needs.validate.outputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+            echo "Gitleaks found ${FINDINGS_COUNT} potential secrets."
+            exit 1
+          fi
+
+          if [ "$EXIT_CODE" -ne 0 ] && [ "$FINDINGS_COUNT" -eq 0 ]; then
+            echo "Gitleaks exited with code $EXIT_CODE but no findings were parsed."
+            exit "$EXIT_CODE"
+          fi
+
+      - name: Upload Gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: reports/gitleaks-report.json
+          if-no-files-found: error
 
   sast:
     name: SAST Scan
     needs: validate
-    uses: ./.github/workflows/reusable-sast.yml
-    with:
-      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
-      config: ${{ inputs.semgrep_config }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: pip install --disable-pip-version-check semgrep
+
+      - name: Run Semgrep
+        run: |
+          mkdir -p reports
+          semgrep scan --config "${{ inputs.semgrep_config }}" --json --output reports/semgrep-report.json . || true
+
+      - name: Evaluate Semgrep findings
+        run: |
+          if [ ! -f reports/semgrep-report.json ]; then
+            echo '{"results": []}' > reports/semgrep-report.json
+          fi
+          FINDINGS_COUNT=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('reports/semgrep-report.json')
+          try:
+              data = json.loads(path.read_text())
+              print(len(data.get('results', [])) if isinstance(data, dict) else 0)
+          except Exception:
+              print(0)
+          PY
+          )
+          echo "Semgrep findings: ${FINDINGS_COUNT}"
+          if [ "${{ needs.validate.outputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/semgrep-report.json
+          if-no-files-found: error
 
   sca:
     name: SCA Scan
     needs: validate
-    uses: ./.github/workflows/reusable-sca.yml
-    with:
-      fail_on_findings: ${{ needs.validate.outputs.fail_on_findings == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.7'
+
+      - name: Install OSV-Scanner
+        run: |
+          set -euo pipefail
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.0.2
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Check OSV-Scanner
+        run: osv-scanner --version
+
+      - name: Run OSV-Scanner
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          osv-scanner scan source --recursive ./ --format json --output-file reports/osv-report.json || true
+
+      - name: Evaluate OSV findings
+        run: |
+          if [ ! -f reports/osv-report.json ]; then
+            echo '{"results": []}' > reports/osv-report.json
+          fi
+          FINDINGS_COUNT=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('reports/osv-report.json')
+          try:
+              data = json.loads(path.read_text())
+              count = 0
+              for result in data.get('results', []):
+                  count += len(result.get('packages', []) or [])
+                  count += len(result.get('vulnerabilities', []) or [])
+              print(count)
+          except Exception:
+              print(0)
+          PY
+          )
+          echo "OSV findings: ${FINDINGS_COUNT}"
+          if [ "${{ needs.validate.outputs.fail_on_findings }}" = "true" ] && [ "$FINDINGS_COUNT" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload OSV report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osv-report
+          path: reports/osv-report.json
+          if-no-files-found: error
 
   sbom:
     name: SBOM Generation
-    uses: ./.github/workflows/reusable-sbom.yml
-    with:
-      scan_path: ${{ inputs.sbom_scan_path }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          mkdir -p reports
+          syft "${{ inputs.sbom_scan_path }}" -o cyclonedx-json=reports/sbom-cyclonedx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-report
+          path: reports/sbom-cyclonedx.json
+          if-no-files-found: error
 
   dashboard:
     name: Security Dashboard
@@ -111,9 +302,70 @@ jobs:
       - sca
       - sbom
     if: always()
-    uses: ./.github/workflows/reusable-dashboard.yml
-    with:
-      repo_name: ${{ inputs.repo_name }}
-      deploy_pages: ${{ inputs.deploy_pages }}
-      gate_repository: ${{ inputs.gate_repository }}
-      gate_ref: ${{ inputs.gate_ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Security Gate assets
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.gate_repository }}
+          ref: ${{ inputs.gate_ref }}
+          path: security-gate
+
+      - name: Download security artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/raw
+          pattern: '*-report'
+          merge-multiple: true
+
+      - name: Aggregate findings
+        run: |
+          set -euo pipefail
+          mkdir -p reports/normalized
+          python security-gate/scripts/aggregate_results.py \
+            --input-dir reports/raw \
+            --output-file reports/normalized/dashboard-data.json \
+            --repo-name "${{ inputs.repo_name || github.repository }}"
+
+      - name: Build static dashboard package
+        run: |
+          set -euo pipefail
+          python security-gate/scripts/generate_dashboard.py \
+            --data-file reports/normalized/dashboard-data.json \
+            --dashboard-dir security-gate/dashboard \
+            --output-dir reports/dashboard
+
+      - name: Verify dashboard output
+        run: |
+          set -euo pipefail
+          test -f reports/dashboard/index.html
+          ls -R reports/dashboard
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-dashboard
+          path: reports/dashboard
+          if-no-files-found: error
+
+      - name: Upload Pages artifact
+        if: inputs.deploy_pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/dashboard
+
+  deploy-pages:
+    name: Deploy Security Dashboard
+    needs: dashboard
+    if: inputs.deploy_pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

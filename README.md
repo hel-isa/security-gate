@@ -39,12 +39,12 @@ Start in audit mode:
 jobs:
   security-gate:
     name: Security Gate
-    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.1
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
-      gate_ref: v2.0.0
+      gate_ref: v2.0.1
 ```
 
 Switch to strict mode when the team is ready to block on findings:
@@ -97,7 +97,7 @@ Advanced teams can call individual reusable workflows directly when they need cu
 
 ## Stable Releases
 
-Approved consumers should pin to immutable release tags such as `v2.0.0`. Keep the workflow reference and `gate_ref` aligned so the reusable workflow and dashboard assets come from the same release.
+Approved consumers should pin to immutable release tags such as `v2.0.1`. Keep the workflow reference and `gate_ref` aligned so the reusable workflow and dashboard assets come from the same release.
 
 ## Local Usage (where applicable)
 - Aggregation script:

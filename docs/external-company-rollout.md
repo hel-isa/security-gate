@@ -16,7 +16,7 @@ For another company, the most practical private model is a fork or mirror inside
 
 ## Prerequisites
 
-1. Create and push a stable release tag in the Security Gate repo, for example `v2.0.0`.
+1. Create and push a stable release tag in the Security Gate repo, for example `v2.0.1`.
 2. Confirm the target repository allows GitHub Actions and reusable workflows.
 3. Start with `deploy_pages: false` to avoid GitHub Pages environment protection issues.
 4. Start with `mode: audit` so the first run reports findings without blocking the team.
@@ -45,13 +45,13 @@ permissions:
 jobs:
   security-gate:
     name: Security Gate
-    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.1
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
       gate_repository: hel-isa/security-gate
-      gate_ref: v2.0.0
+      gate_ref: v2.0.1
       deploy_pages: false
 ```
 
@@ -60,7 +60,7 @@ jobs:
 This is the recommended private cross-company setup.
 
 1. Fork or mirror this repository into the company's GitHub organization.
-2. Create the same stable release tag in that fork or mirror, for example `v2.0.0`.
+2. Create the same stable release tag in that fork or mirror, for example `v2.0.1`.
 3. Use the company-owned repository in both `uses` and `gate_repository`.
 
 ```yaml
@@ -81,13 +81,13 @@ permissions:
 jobs:
   security-gate:
     name: Security Gate
-    uses: COMPANY-ORG/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0
+    uses: COMPANY-ORG/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.1
     with:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
       gate_repository: COMPANY-ORG/security-gate
-      gate_ref: v2.0.0
+      gate_ref: v2.0.1
       deploy_pages: false
 ```
 
@@ -107,7 +107,7 @@ jobs:
 Check that:
 
 - the Security Gate repo is public or accessible to the caller
-- the tag exists, for example `v2.0.0`
+- the tag exists, for example `v2.0.1`
 - the workflow path is exactly `.github/workflows/reusable-security-gate.yml`
 
 ### Dashboard asset checkout fails

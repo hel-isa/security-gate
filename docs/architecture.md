@@ -12,7 +12,7 @@ Version 2 is built around a **product-level reusable GitHub Actions workflow** b
 - `reusable-sbom.yml`: Syft SBOM generation in CycloneDX JSON.
 - `reusable-dashboard.yml`: report aggregation and static dashboard creation.
 
-Most repositories should call `reusable-security-gate.yml`. Each lower-level control is still callable through `workflow_call`, enabling advanced repositories to consume any subset of controls.
+Most repositories should call `reusable-security-gate.yml`. The product entry workflow is self-contained so cross-repository consumers do not need local copies of the lower-level workflows. Each lower-level control is still callable through `workflow_call`, enabling advanced repositories to consume any subset of controls when the workflow files are available to the caller.
 
 ## Product Presets
 
@@ -31,14 +31,14 @@ This keeps the default path language-agnostic while preserving escape hatches fo
    - `semgrep-report`
    - `osv-report`
    - `sbom-report`
-3. Dashboard workflow downloads `*-report` artifacts.
-4. Dashboard workflow checks out the Security Gate repository assets through `gate_repository` and `gate_ref`.
-5. Dashboard workflow normalizes findings with Python and packages a static dashboard artifact.
+3. The dashboard job downloads `*-report` artifacts.
+4. The dashboard job checks out the Security Gate repository assets through `gate_repository` and `gate_ref`.
+5. The dashboard job normalizes findings with Python and packages a static dashboard artifact.
 
 ## Approved Repository Flow
 
 1. A repository owner copies an example workflow into `.github/workflows/security-gate.yml`.
-2. The workflow calls `hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.0`.
+2. The workflow calls `hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2.0.1`.
 3. The first run should use audit mode to establish a baseline.
 4. The repository can switch to strict mode when findings are understood and enforcement is accepted.
 
