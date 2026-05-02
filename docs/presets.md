@@ -34,6 +34,8 @@ with:
 
 Strict mode runs the same language-agnostic baseline and fails the gate when findings are detected by blocking controls.
 
+Before switching to strict mode, run audit mode first and review the dashboard artifact. Strict mode is intentionally blocking: if Semgrep reports findings, the SAST job exits with failure until the findings are fixed, suppressed with repository-owned configuration, or accepted through a documented policy.
+
 ## Custom Policy Preset
 
 Use this when a repository needs stronger Semgrep rules or local Gitleaks tuning.

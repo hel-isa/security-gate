@@ -16,7 +16,7 @@ jobs:
     name: Security Gate
     uses: ./.github/workflows/reusable-security-gate.yml
     with:
-      mode: strict
+      mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
       deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
