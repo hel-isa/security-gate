@@ -55,7 +55,7 @@ with:
   semgrep_config: auto
 ```
 
-See `docs/onboarding.md` for the full copy-paste workflow, `docs/presets.md` for preset guidance, and `docs/release-management.md` for stable tag usage.
+See `docs/onboarding.md` for the full copy-paste workflow, `docs/presets.md` for preset guidance, `docs/release-management.md` for stable tag usage, and `docs/external-company-rollout.md` for repositories owned by another company.
 
 ## Repository Layout
 - `.github/workflows/` - orchestrator and reusable workflow modules
