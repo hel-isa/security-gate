@@ -99,6 +99,8 @@ Advanced teams can call individual reusable workflows directly when they need cu
 
 Approved consumers should pin to immutable release tags such as `v2.0.1`. Keep the workflow reference and `gate_ref` aligned so the reusable workflow and dashboard assets come from the same release.
 
+Users who want the latest compatible v2 release can use the `v2` branch with `@v2` and `gate_ref: v2`, but exact tags are safer for production and external-company onboarding.
+
 ## Local Usage (where applicable)
 - Aggregation script:
   ```bash
