@@ -1,0 +1,98 @@
+# Security Gate Onboarding
+
+Security Gate is designed for approved repositories that need a practical default security scan without rebuilding a DevSecOps workflow from scratch.
+
+## Choose a Preset
+
+Use one of these presets first. You can tune individual controls later.
+
+| Preset | Mode | Best for | Behavior |
+| --- | --- | --- | --- |
+| Audit | `audit` | First rollout, legacy repos, training | Runs all scans, publishes reports, does not block merges on findings. |
+| Strict | `strict` | Protected branches, production services | Runs all scans and fails when secrets, SAST, or dependency findings exist. |
+
+`non-strict` is accepted as an alias for `audit`.
+
+## Quick Start
+
+1. Confirm the repository is approved to use this shared gate.
+2. Copy one template into the target repository as `.github/workflows/security-gate.yml`.
+3. Start with `examples/security-gate-audit.yml` for the first run.
+4. Open a pull request or run the workflow manually.
+5. Review the `security-dashboard` artifact.
+6. Move to `mode: strict` when the team is ready to block on findings.
+
+## Recommended Default
+
+Use this for most repositories during onboarding:
+
+```yaml
+name: Security Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  security-gate:
+    name: Security Gate
+    uses: hel-isa/security-gate/.github/workflows/reusable-security-gate.yml@v2
+    with:
+      mode: audit
+      semgrep_config: auto
+      repo_name: ${{ github.repository }}
+      gate_ref: v2
+      deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+```
+
+## Inputs
+
+| Input | Default | Description |
+| --- | --- | --- |
+| `mode` | `audit` | `audit`, `non-strict`, or `strict`. Strict mode fails jobs when findings are detected. |
+| `semgrep_config` | `auto` | Semgrep ruleset. Keep `auto` for language-agnostic defaults. |
+| `gitleaks_config_path` | `.gitleaks.toml` | Optional Gitleaks config path in the target repository. A default config is created when missing. |
+| `sbom_scan_path` | `.` | Path used by Syft to generate the SBOM. |
+| `repo_name` | caller repository | Repository name shown in dashboard data. |
+| `deploy_pages` | `false` | Publishes the dashboard to GitHub Pages when enabled. |
+| `gate_repository` | `hel-isa/security-gate` | Repository containing Security Gate scripts and dashboard assets. |
+| `gate_ref` | `v2` | Git ref used to load Security Gate scripts and dashboard assets. |
+
+## Approved Use Model
+
+This project is intended for repositories and users approved by the owner of the shared Security Gate repository.
+
+Approved users can:
+
+- call the reusable workflow from their repository
+- use audit mode to learn the current security posture
+- switch to strict mode when the team accepts blocking behavior
+- add local tool config files when they need repository-specific tuning
+
+Repository owners should:
+
+- pin the workflow reference to a stable branch or tag
+- keep `gate_ref` aligned with the workflow version they call
+- review findings before enabling strict mode
+- document accepted exceptions in their own repository
+- avoid storing sensitive scan outputs in public artifacts
+
+## Advanced Configuration
+
+Advanced users can call individual reusable workflows directly:
+
+- `.github/workflows/reusable-secrets.yml`
+- `.github/workflows/reusable-sast.yml`
+- `.github/workflows/reusable-sca.yml`
+- `.github/workflows/reusable-sbom.yml`
+- `.github/workflows/reusable-dashboard.yml`
+
+Use the product-level `reusable-security-gate.yml` unless you have a clear reason to compose the controls yourself.

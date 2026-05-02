@@ -13,6 +13,16 @@ on:
         required: false
         default: false
         type: boolean
+      gate_repository:
+        description: Repository containing Security Gate scripts and dashboard assets
+        required: false
+        default: hel-isa/security-gate
+        type: string
+      gate_ref:
+        description: Git ref for Security Gate scripts and dashboard assets
+        required: false
+        default: v2
+        type: string
 
 permissions:
   contents: read
@@ -27,8 +37,12 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Security Gate assets
         uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.gate_repository }}
+          ref: ${{ inputs.gate_ref }}
+          path: security-gate
 
       - name: Download security artifacts
         uses: actions/download-artifact@v4
@@ -41,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p reports/normalized
-          python scripts/aggregate_results.py \
+          python security-gate/scripts/aggregate_results.py \
             --input-dir reports/raw \
             --output-file reports/normalized/dashboard-data.json \
             --repo-name "${{ inputs.repo_name || github.repository }}"
@@ -49,9 +63,9 @@ jobs:
       - name: Build static dashboard package
         run: |
           set -euo pipefail
-          python scripts/generate_dashboard.py \
+          python security-gate/scripts/generate_dashboard.py \
             --data-file reports/normalized/dashboard-data.json \
-            --dashboard-dir dashboard \
+            --dashboard-dir security-gate/dashboard \
             --output-dir reports/dashboard
 
       - name: Verify dashboard output
