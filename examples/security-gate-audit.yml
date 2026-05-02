@@ -21,4 +21,4 @@ jobs:
       semgrep_config: auto
       repo_name: ${{ github.repository }}
       gate_ref: v2.0.0
-      deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      deploy_pages: false

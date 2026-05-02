@@ -32,10 +32,6 @@ permissions:
 jobs:
   dashboard:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Checkout Security Gate assets
         uses: actions/checkout@v4
@@ -81,17 +77,23 @@ jobs:
           path: reports/dashboard
           if-no-files-found: error
 
-      - name: Configure Pages
-        if: inputs.deploy_pages
-        uses: actions/configure-pages@v5
-
       - name: Upload Pages artifact
         if: inputs.deploy_pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: reports/dashboard
 
+  deploy-pages:
+    runs-on: ubuntu-latest
+    needs: dashboard
+    if: inputs.deploy_pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
       - name: Deploy to GitHub Pages
-        if: inputs.deploy_pages
         id: deployment
         uses: actions/deploy-pages@v4

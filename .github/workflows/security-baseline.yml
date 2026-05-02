@@ -19,4 +19,4 @@ jobs:
       mode: audit
       semgrep_config: auto
       repo_name: ${{ github.repository }}
-      deploy_pages: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      deploy_pages: false
